@@ -33,6 +33,7 @@ docker-compose up -d
 Alternatively, configure your local PostgreSQL server and update the connection URL in `backend/.env`:
 ```env
 DATABASE_URL="postgresql://<user>:<password>@localhost:5432/haqms?schema=public"
+JWT_SECRET="your-local-development-secret"
 ```
 
 ### 3. Deploy Schema & Seed Mock Data

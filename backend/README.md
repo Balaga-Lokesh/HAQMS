@@ -7,7 +7,8 @@ The backend server runs on port `5000` by default.
 
 ### Setup Database Environment
 1. Ensure a local PostgreSQL instance is running or launch the pre-packaged docker container.
-2. Build migrations and run the mock seed:
+2. Set `DATABASE_URL` and `JWT_SECRET` in `backend/.env`.
+3. Build migrations and run the mock seed:
 ```bash
 npm run db:setup
 ```
