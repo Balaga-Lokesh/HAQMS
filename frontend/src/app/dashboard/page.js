@@ -21,10 +21,8 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  if (!user) return null;
-
   // Global State
-  const [activeTab, setActiveTab] = useState(user.role === 'ADMIN' ? 'reports' : user.role === 'RECEPTIONIST' ? 'patients' : 'appointments');
+  const [activeTab, setActiveTab] = useState('reports');
 
   // ==========================================
   // STATE FOR RECEPTIONIST WORKFLOWS
@@ -67,6 +65,18 @@ export default function Dashboard() {
   const [adminReportLoading, setAdminReportLoading] = useState(false);
   const [adminSearchQuery, setAdminSearchQuery] = useState('');
 
+  useEffect(() => {
+    if (!user) return;
+
+    setActiveTab(
+      user.role === 'ADMIN'
+        ? 'reports'
+        : user.role === 'RECEPTIONIST'
+          ? 'patients'
+          : 'appointments'
+    );
+  }, [user]);
+
   // ==========================================
   // RECEPTIONIST FUNCTIONS
   // ==========================================
@@ -97,6 +107,8 @@ export default function Dashboard() {
 
   // Trigger Patient List Fetch (Every keystroke trigger re-renders parent! - Performance bug)
   useEffect(() => {
+    if (!user) return;
+
     if (user.role === 'RECEPTIONIST' || user.role === 'ADMIN') {
       fetchPatients(1);
     }
@@ -109,7 +121,7 @@ export default function Dashboard() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      setDoctorsList(data);
+      setDoctorsList(data.doctors || data || []);
     } catch (e) {
       console.error(e);
     }
@@ -281,6 +293,8 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    if (!user) return;
+
     if (user.role === 'DOCTOR' && doctorsList.length > 0) {
       fetchDoctorWorklist();
     }
@@ -354,15 +368,13 @@ export default function Dashboard() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setDoctorsList(data);
-      } else {
-        alert(`API Error: ${data.sqlMessage || data.error}`);
-      }
+      setDoctorsList(data.doctors || data || []);
     } catch (e) {
       console.error(e);
     }
   };
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen flex flex-col">
