@@ -18,6 +18,27 @@ Candidates are tasked with auditing the codebase to identify, debug, profile, se
 
 Follow these steps to spin up the local development workspace:
 
+### Setup
+
+1. Install dependencies for the root, backend, and frontend.
+2. Start PostgreSQL locally or via Docker Compose.
+3. Configure `backend/.env` and `frontend/.env.local`.
+4. Run the Prisma seed to load demo data.
+5. Start the backend and frontend dev servers.
+
+### Environment Variables
+
+Backend:
+```env
+DATABASE_URL="postgresql://<user>:<password>@localhost:5432/haqms?schema=public"
+JWT_SECRET="your-local-development-secret"
+```
+
+Frontend:
+```env
+NEXT_PUBLIC_API_BASE_URL="http://localhost:5000/api"
+```
+
 ### 1. Auto-Install Dependencies
 Run the included workspace orchestrator bootstrap script to install packages in the root, frontend, and backend packages:
 ```bash
@@ -42,11 +63,42 @@ Apply Prisma schema migrations to the database and populate it with pre-built mo
 npm run db:setup --prefix backend
 ```
 
+If you only want to refresh demo data without reapplying the migration, run:
+```bash
+npm run prisma:seed --prefix backend
+```
+
 ### 4. Boot Dev Servers
 Launch both the Next.js development client (port `3000`) and the Express API server (port `5000`) concurrently using:
 ```bash
 npm run dev
 ```
+
+## Demo Credentials
+
+The seed script creates these users. The password for each is `password123`.
+
+- `admin@haqms.com` - Administrator
+- `reception1@haqms.com` - Receptionist
+- `doctor1@haqms.com` - Doctor
+
+## Key Fixes
+
+- Reconstructed the missing Prisma layer and database migrations.
+- Removed the SQL injection issue in doctor search.
+- Added strict RBAC for patient deletion.
+- Hardened JWT handling and removed password logging.
+- Fixed queue token race conditions with transactional allocation.
+- Eliminated N+1 appointment queries.
+- Moved patient filtering and pagination into the database.
+- Fixed the dashboard hook-order crash and queue polling leak.
+
+## Deployment URLs
+
+- Frontend target: Vercel
+- Backend target: Railway
+- Backend runtime config: `DATABASE_URL`, `JWT_SECRET`
+- Frontend runtime config: `NEXT_PUBLIC_API_BASE_URL`
 
 ---
 

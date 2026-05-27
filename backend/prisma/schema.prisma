@@ -37,6 +37,7 @@ model User {
 
 model Doctor {
   id              String        @id @default(cuid())
+  userId          String?       @unique
   name            String
   specialization  String
   department      String

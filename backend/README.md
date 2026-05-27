@@ -13,6 +13,11 @@ The backend server runs on port `5000` by default.
 npm run db:setup
 ```
 
+If you need to refresh demo data without reapplying the migration:
+```bash
+npm run prisma:seed
+```
+
 ### Start Development Server
 ```bash
 npm run dev
