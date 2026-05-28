@@ -1,6 +1,17 @@
-# MedFlow AI Frontend
+# HAQMS Frontend
 
-Next.js App Router client for MedFlow AI.
+Next.js App Router frontend for the Hospital Appointment & Queue Management System (HAQMS).
+
+## Frontend Features
+
+- Modern responsive healthcare dashboard UI
+- Role-based interfaces for Admin, Doctor, and Receptionist
+- Patient registration and management workflows
+- Appointment scheduling interface
+- Live queue monitoring and token updates
+- Clinical history and patient record views
+- Secure API integration using environment variables
+- Optimized production deployment on Vercel
 
 ## Local Development
 
@@ -12,6 +23,10 @@ Next.js App Router client for MedFlow AI.
 npm install
 npm run dev
 ```
+
+## Live Application
+
+https://frontend-haqms.vercel.app/
 
 ## Production Deployment on Vercel
 
@@ -26,10 +41,18 @@ npm run build
 npm run lint
 ```
 
+## Tech Stack
+
+- Next.js 16
+- React 19
+- Tailwind CSS
+- App Router Architecture
+- Railway + Vercel Deployment
+
 ## Frontend Areas
 
 - `src/app/page.js` - landing page
 - `src/app/login/page.js` - auth entry point
-- `src/app/dashboard/page.js` - role-based operations dashboard
+- `src/app/dashboard/page.js` - centralized hospital operations dashboard
 - `src/app/queue/page.js` - public queue monitor
 - `src/app/patients/[id]/history-records/page.js` - patient clinical record view
