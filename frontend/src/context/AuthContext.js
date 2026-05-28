@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation';
 
 const AuthContext = createContext();
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '');
+
+const requireApiBaseUrl = () => {
+  if (!API_BASE_URL) {
+    throw new Error('NEXT_PUBLIC_API_BASE_URL must be configured for the frontend.');
+  }
+
+  return API_BASE_URL;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
@@ -12,13 +22,7 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const router = useRouter();
 
-  // HARDCODED API VALUE: Intentionally hardcoding the backend base URL on the frontend!
-  // This violates production standards and prevents simple domain config, but serves as
-  // a perfect exercise for internship candidates to move to environment variables.
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
-
   useEffect(() => {
-    // Check for stored token and user on initialization
     const storedToken = localStorage.getItem('haqms_token');
     const storedUser = localStorage.getItem('haqms_user');
 
@@ -38,7 +42,8 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const apiBaseUrl = requireApiBaseUrl();
+      const response = await fetch(`${apiBaseUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,11 +57,9 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error || 'Authentication failed');
       }
 
-      // Inconsistent API returns nested success format for login
       const receivedToken = data.data.token;
       const receivedUser = data.data.user;
 
-      // SECURITY ISSUE: Storing sensitive auth credentials directly in LocalStorage!
       localStorage.setItem('haqms_token', receivedToken);
       localStorage.setItem('haqms_user', JSON.stringify(receivedUser));
 
@@ -78,7 +81,8 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      const apiBaseUrl = requireApiBaseUrl();
+      const response = await fetch(`${apiBaseUrl}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,9 +96,6 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // If registration succeeds, log them in automatically or redirect to login.
-      // Notice inconsistency: signup API returns flat user structure inside "user"
-      // we can trigger login for them.
       return login(email, password);
     } catch (err) {
       setError(err.message);
@@ -122,7 +123,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
-        API_BASE_URL, // Exposing hardcoded API base URL for convenience
+        API_BASE_URL,
       }}
     >
       {children}

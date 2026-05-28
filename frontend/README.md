@@ -1,23 +1,35 @@
-# HAQMS Frontend - Next.js App Client
+# MedFlow AI Frontend
 
-This is the Next.js client for the Hospital Appointment & Queue Management System.
+Next.js App Router client for MedFlow AI.
 
-## 🚀 Running the Client
-The client runs on port `3000` by default.
+## Local Development
 
-Start the development server:
+1. Copy `frontend/.env.example` to `frontend/.env.local`.
+2. Set `NEXT_PUBLIC_API_BASE_URL` to your backend API.
+3. Install dependencies and run the dev server.
+
 ```bash
+npm install
 npm run dev
 ```
 
-Build the production bundle:
+## Production Deployment on Vercel
+
+- Set `NEXT_PUBLIC_API_BASE_URL` to the Railway backend URL ending in `/api`.
+- Deploy as a standard Next.js App Router application.
+- Confirm the backend `CORS_ORIGIN` includes the Vercel domain.
+
+## Validation
+
 ```bash
 npm run build
+npm run lint
 ```
 
-## 🔍 Candidate Scope
-You will need to analyze and optimize files inside `src/`:
-- **Memory Leak**: Locate the polling issue in `src/app/queue/page.js`.
-- **Render Performance**: Profile the input searches in `src/app/dashboard/page.js`.
-- **Unsafe Object Property Reads**: Correct the null-reference clinical history rendering crash in `src/app/dashboard/page.js`.
-- **Incomplete Feature**: Implement the missing legacy reports page at `src/app/patients/[id]/history-records/page.js`.
+## Frontend Areas
+
+- `src/app/page.js` - landing page
+- `src/app/login/page.js` - auth entry point
+- `src/app/dashboard/page.js` - role-based operations dashboard
+- `src/app/queue/page.js` - public queue monitor
+- `src/app/patients/[id]/history-records/page.js` - patient clinical record view

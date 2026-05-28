@@ -1,24 +1,18 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/common/Navbar';
 import { Activity, Bell, Monitor, RefreshCw, AlertCircle } from 'lucide-react';
 
 export default function QueueMonitor() {
+  const { API_BASE_URL } = useAuth();
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // Duplicated config state just to add minor code smell
-  const [refreshCount, setRefreshCount] = useState(0);
-
-  // HARDCODED API BASE URL: Duplicated from AuthContext (code duplication smell)
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
 
   const fetchQueueData = async () => {
     try {
-      // Insecure: Fetches queue without checking credentials (it's a public dashboard, which is fine, 
-      // but it uses the hardcoded API domain)
       const res = await fetch(`${API_BASE_URL}/queue`);
       if (!res.ok) {
         throw new Error('Failed to retrieve active token queue.');
@@ -35,15 +29,13 @@ export default function QueueMonitor() {
   };
 
   useEffect(() => {
-    // Initial fetch
     fetchQueueData();
 
     const intervalId = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchQueueData();
-        setRefreshCount((prev) => prev + 1);
       }
-    }, 5000);
+    }, 15000);
 
     return () => clearInterval(intervalId);
   }, []);
@@ -84,7 +76,7 @@ export default function QueueMonitor() {
                 Live Public Monitor Board
               </h1>
               <p className="text-xs text-slate-400 dark:text-slate-400 font-semibold mt-1">
-                Real-time physician calling boards. Auto-syncs every 3 seconds.
+                Real-time physician calling boards. Auto-syncs every 15 seconds while the tab is active.
               </p>
             </div>
           </div>
@@ -94,9 +86,6 @@ export default function QueueMonitor() {
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
               Auto Refreshing
             </span>
-            <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-400 text-xs font-mono">
-              Polls: {refreshCount}
-            </div>
           </div>
         </div>
 

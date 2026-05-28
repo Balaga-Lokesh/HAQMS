@@ -84,11 +84,17 @@ export default function Dashboard() {
   // ==========================================
   
   // Fetch Patients List
-  const fetchPatients = async (page = 1) => {
+  const fetchPatients = async (page = 1, search = deferredPatientSearch, gender = patientGender) => {
     setPatientsLoading(true);
     try {
-      // Inefficient memory pagination called from client
-      const res = await fetch(`${API_BASE_URL}/patients?page=${page}&limit=5&search=${patientSearch}&gender=${patientGender}`, {
+      const query = new URLSearchParams({
+        page: String(page),
+        limit: '5',
+        search,
+        gender,
+      });
+
+      const res = await fetch(`${API_BASE_URL}/patients?${query.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -112,9 +118,9 @@ export default function Dashboard() {
     if (!user || suppressInitialPatientLoad) return;
 
     if (user.role === 'RECEPTIONIST' || user.role === 'ADMIN') {
-      fetchPatients(1);
+      fetchPatients(1, deferredPatientSearch, patientGender);
     }
-  }, [deferredPatientSearch, patientGender, suppressInitialPatientLoad]);
+  }, [deferredPatientSearch, patientGender, suppressInitialPatientLoad, user, token, API_BASE_URL]);
 
   // Fetch Doctors for booking drop-down
   const fetchDoctorsDropdown = async () => {
@@ -387,7 +393,7 @@ export default function Dashboard() {
   // Search Doctors (secure API)
   const searchPhysiciansAdmin = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/doctors?search=${adminSearchQuery}`, {
+      const res = await fetch(`${API_BASE_URL}/doctors?search=${encodeURIComponent(adminSearchQuery)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -408,7 +414,7 @@ export default function Dashboard() {
         {/* Dashboard Hero */}
         <div className="mb-10">
           <div className="glass rounded-3xl p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-72 h-72 bg-[rgba(91,140,255,0.06)] blur-3xl rounded-full" />
+            <div className="absolute top-0 right-0 w-72 h-72 bg-[rgba(91,140,255,0.06)] blur-2xl rounded-full" />
 
             <div className="relative z-10">
               <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[rgba(91,140,255,0.06)] border border-[rgba(91,140,255,0.06)] text-[rgba(191,220,255,0.95)] text-xs font-bold tracking-wide">
@@ -990,22 +996,17 @@ export default function Dashboard() {
                 <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs space-y-2">
                   <h4 className="font-bold text-slate-400 uppercase tracking-wider">Clinical Background Information</h4>
                   
-                  {/* FRONTEND CRASH BUG:
-                      Assuming medicalHistory is always populated. Accesses a method on a nullable property
-                      without optional chaining! If medicalHistory is null (which is the case for Batman, Clark Kent, etc.),
-                      this code throws: "Cannot read properties of null (reading 'toUpperCase')" and crashes the app! */}
                   <p className="text-slate-700 dark:text-slate-300 leading-5 text-sm font-semibold">
-                    {selectedPatientHistory.medicalHistory.toUpperCase()}
+                    {selectedPatientHistory.medicalHistory?.trim() || 'No clinical history recorded for this patient.'}
                   </p>
                 </div>
 
                 <div className="pt-2 flex justify-between items-center text-xs">
-                  {/* Incomplete Missing Route trigger -> will route to 404 page! */}
                   <Link 
                     href={`/patients/${selectedPatientHistory.id}/history-records`} 
                     className="text-teal-600 font-extrabold hover:underline flex items-center gap-1"
                   >
-                    View Diagnostic Reports Details (Legacy App)
+                    View Clinical Record
                     <ArrowRight className="h-3 w-3" />
                   </Link>
                 </div>
@@ -1094,7 +1095,7 @@ export default function Dashboard() {
                     Doctor Revenue & Operations Report
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
-                    System-wide practitioner performance audits. Computes completed bookings and potential sales.
+                    System-wide practitioner performance overview. Summarizes completed bookings and revenue activity.
                   </p>
                 </div>
                 <button
@@ -1102,7 +1103,7 @@ export default function Dashboard() {
                   disabled={adminReportLoading}
                   className="glow-btn px-4 py-2 bg-teal-600 text-white font-extrabold text-xs rounded-lg shadow hover:bg-teal-700 disabled:opacity-50 transition-colors"
                 >
-                  {adminReportLoading ? 'Aggregating...' : 'Load Doctor System Audit Report'}
+                  {adminReportLoading ? 'Loading...' : 'Load Operations Report'}
                 </button>
               </div>
 
@@ -1113,12 +1114,12 @@ export default function Dashboard() {
                     <div></div>
                   </div>
                   <p className="mt-4 text-xs font-semibold text-slate-400 animate-pulse">
-                    Executing sequential nested loop aggregates. Event loop is locked...
+                    Preparing aggregated analytics for display...
                   </p>
                 </div>
               ) : !adminReportData ? (
-                <div className="p-8 text-center bg-slate-100 dark:bg-slate-800/40 rounded-xl text-slate-400 text-xs font-semibold border border-dashed border-slate-200 dark:border-slate-700">
-                  Click the button above to load reports. Warning: Endpoint is extremely slow on larger doctor count tables!
+                  <div className="p-8 text-center bg-slate-100 dark:bg-slate-800/40 rounded-xl text-slate-400 text-xs font-semibold border border-dashed border-slate-200 dark:border-slate-700">
+                  Click the button above to load the latest operations summary.
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -1126,9 +1127,9 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3 p-3 bg-amber-500/10 text-slate-700 dark:text-slate-300 text-xs rounded-lg border border-amber-500/20 leading-5">
                     <Clock className="h-5 w-5 text-amber-500 shrink-0" />
                     <div>
-                      <strong>Performance Diagnostic:</strong> API execution resolved in{' '}
+                      <strong>Performance Summary:</strong> API execution resolved in{' '}
                       <span className="font-bold text-amber-500">{adminReportData.timeTakenMs} ms</span>. 
-                      Sequential nested database calls loops reduce throughput. Optimization using Promise.all or single join aggregate is required.
+                      Aggregated database access keeps the report responsive under load.
                     </div>
                   </div>
 

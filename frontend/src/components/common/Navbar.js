@@ -15,7 +15,7 @@ export default function Navbar() {
         {/* Branding */}
         <Link href="/" className="flex items-center gap-2 text-teal-600 dark:text-teal-400 font-extrabold text-2xl tracking-tight">
           <Activity className="h-6 w-6 animate-pulse" />
-          <span>HAQMS</span>
+          <span>MedFlow AI</span>
         </Link>
 
         {/* Links */}

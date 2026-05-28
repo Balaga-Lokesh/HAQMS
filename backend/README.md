@@ -1,32 +1,41 @@
-# HAQMS Backend - Node + Express + Prisma API Server
+# HAQMS Backend
 
-This is the Express API server and database layer for the Hospital Appointment & Queue Management System.
+Express.js API and Prisma data layer for MedFlow AI.
 
-## 🚀 Running the API
-The backend server runs on port `5000` by default.
+## Local Development
 
-### Setup Database Environment
-1. Ensure a local PostgreSQL instance is running or launch the pre-packaged docker container.
-2. Set `DATABASE_URL` and `JWT_SECRET` in `backend/.env`.
-3. Build migrations and run the mock seed:
+1. Copy `backend/.env.example` to `backend/.env`.
+2. Point `DATABASE_URL` at PostgreSQL.
+3. Set a strong `JWT_SECRET`.
+4. Run migrations and seed data.
+
 ```bash
+npm install
 npm run db:setup
-```
-
-If you need to refresh demo data without reapplying the migration:
-```bash
-npm run prisma:seed
-```
-
-### Start Development Server
-```bash
 npm run dev
 ```
 
-## 🔍 Candidate Scope
-Analyze, profile, secure, and refactor files inside `src/` and `prisma/`:
-- **SQL Injection**: Resolve raw interpolation queries in `src/routes/doctors.js`.
-- **N+1 Database Queries**: Optimize appointments aggregation inside `src/routes/appointments.js`.
-- **Concurrency Race Conditions**: Secure `src/routes/queue.js` token increments.
-- **Weak Authorization**: Patch route security in `src/routes/patients.js`.
-- **Schema Optimization**: Introduce proper constraints and indexes in `prisma/schema.prisma`.
+## Production Deployment on Railway
+
+- Use `npm start` as the service command.
+- Set `NODE_ENV=production`.
+- Set `DATABASE_URL` to the Railway Postgres connection string.
+- Set `JWT_SECRET` to a strong secret.
+- Set `CORS_ORIGIN` to the Vercel frontend URL.
+- Run `prisma migrate deploy` during startup or as a Railway release command.
+
+## Prisma Commands
+
+```bash
+npm run prisma:generate
+npm run prisma:deploy
+npm run prisma:migrate
+npm run prisma:seed
+```
+
+## API Notes
+
+- `GET /api/patients/:id` returns patient details with appointments and doctor metadata.
+- `GET /api/patients` supports search, gender filtering, and pagination.
+- `GET /api/queue` powers the public queue board.
+- `POST /api/queue/checkin` allocates queue tokens transactionally.

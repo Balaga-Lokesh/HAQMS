@@ -14,8 +14,6 @@ if (!JWT_SECRET) {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    console.log('[DEBUG] Registering user:', req.body.email);
-
     const { email, password, name, role } = req.body;
 
     // MISSING VALIDATION: Does not check if email is valid format or if password is strong
