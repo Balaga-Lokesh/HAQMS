@@ -1,6 +1,13 @@
 'use client';
 
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+} from 'react';
+
 import { useRouter } from 'next/navigation';
 
 const AuthContext = createContext();
@@ -14,109 +21,186 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const router = useRouter();
 
-  // FIXED: Define logout FIRST using useCallback so useEffect can safely use it
+  // Logout
   const logout = useCallback(() => {
     localStorage.removeItem('haqms_token');
     localStorage.removeItem('haqms_user');
+
     setToken(null);
     setUser(null);
+
     router.push('/login');
   }, [router]);
 
-  // Now useEffect can safely reference logout
+  // Load persisted auth
   useEffect(() => {
     const storedToken = localStorage.getItem('haqms_token');
     const storedUser = localStorage.getItem('haqms_user');
 
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error('Failed to parse user details from localStorage', e);
-        logout();
-      }
-    }
+if (storedToken && storedUser) {
+  try {
+    const parsedUser = JSON.parse(storedUser);
+
+    setToken(() => storedToken);
+    setUser(() => parsedUser);
+  } catch (err) {
+    console.error(
+      '[AUTH] Failed to parse localStorage user:',
+      err
+    );
+
+    logout();
+  }
+}
+
     setLoading(false);
   }, [logout]);
 
-const login = useCallback(async (email, password) => {
-  setLoading(true);
-  setError(null);
+  // Login
+  const login = useCallback(
+    async (email, password) => {
+      setLoading(true);
+      setError(null);
 
-  try {
-    const apiBaseUrl = API_BASE_URL;
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/auth/login`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email,
+              password,
+            }),
+          }
+        );
 
-    const response = await fetch(`${apiBaseUrl}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+        let data = null;
 
-      const data = await response.json();
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          throw new Error('Invalid server response');
+        }
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
+        if (!response.ok) {
+          throw new Error(
+            data?.error || 'Authentication failed'
+          );
+        }
+
+        if (!data || !data.token || !data.user) {
+          throw new Error(
+            'Invalid response from server'
+          );
+        }
+
+        // Persist auth
+        localStorage.setItem(
+          'haqms_token',
+          data.token
+        );
+
+        localStorage.setItem(
+          'haqms_user',
+          JSON.stringify(data.user)
+        );
+
+        // Update state
+        setToken(data.token);
+        setUser(data.user);
+
+        // Navigate
+        router.push('/dashboard');
+
+        return {
+          success: true,
+        };
+      } catch (err) {
+        console.error(
+          '[AUTH-ERROR] Login request failed:',
+          err
+        );
+
+        setError(err.message);
+
+        return {
+          success: false,
+          error: err.message,
+        };
+      } finally {
+        setLoading(false);
       }
+    },
+    [router]
+  );
 
-      const receivedToken = data.token;
-      const receivedUser = data.user;
+  // Register
+  const register = useCallback(
+    async (
+      name,
+      email,
+      password,
+      role = 'RECEPTIONIST'
+    ) => {
+      setLoading(true);
+      setError(null);
 
-      if (!receivedToken || !receivedUser) {
-        throw new Error('Invalid response from server');
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/auth/register`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name,
+              email,
+              password,
+              role,
+            }),
+          }
+        );
+
+        let data = null;
+
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          throw new Error('Invalid server response');
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            data?.error || 'Registration failed'
+          );
+        }
+
+        return await login(email, password);
+      } catch (err) {
+        console.error(
+          '[AUTH-ERROR] Register request failed:',
+          err
+        );
+
+        setError(err.message);
+
+        return {
+          success: false,
+          error: err.message,
+        };
+      } finally {
+        setLoading(false);
       }
-
-      localStorage.setItem('haqms_token', receivedToken);
-      localStorage.setItem('haqms_user', JSON.stringify(receivedUser));
-
-      setToken(receivedToken);
-      setUser(receivedUser);
-
-      router.push('/dashboard');
-      return { success: true };
-    } catch (err) {
-      console.error('[AUTH-ERROR] Login request failed:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
-
-const register = useCallback(async (name, email, password, role = 'RECEPTIONIST') => {
-  setLoading(true);
-  setError(null);
-
-  try {
-    const apiBaseUrl = API_BASE_URL;
-
-    const response = await fetch(`${apiBaseUrl}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password, role }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
-      }
-
-      return login(email, password);
-    } catch (err) {
-      console.error('[AUTH-ERROR] Register request failed:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
-    }
-  }, [login]);
+    },
+    [login]
+  );
 
   return (
     <AuthContext.Provider
@@ -138,8 +222,12 @@ const register = useCallback(async (name, email, password, role = 'RECEPTIONIST'
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
+
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error(
+      'useAuth must be used within an AuthProvider'
+    );
   }
+
   return context;
 };
