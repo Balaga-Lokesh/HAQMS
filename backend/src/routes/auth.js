@@ -1,25 +1,54 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
+const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET must be configured');
 }
 
+// Helpers
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isStrongPassword = (password) => password.length >= 8;
+
+// Consistent response builder
+const buildUserResponse = (user, token = null) => ({
+  user: {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  },
+  ...(token ? { token } : {}),
+});
+
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
     const { email, password, name, role } = req.body;
 
-    // MISSING VALIDATION: Does not check if email is valid format or if password is strong
+    // Validate required fields
     if (!email || !password || !name) {
       return res.status(400).json({ error: 'All fields are required' });
     }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Validate password strength
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    // Prevent self-assigning ADMIN role
+    const allowedRoles = ['RECEPTIONIST', 'DOCTOR'];
+    const assignedRole = allowedRoles.includes(role) ? role : 'RECEPTIONIST';
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -34,18 +63,13 @@ router.post('/register', async (req, res) => {
         email,
         password: hashedPassword,
         name,
-        role: role || 'RECEPTIONIST',
+        role: assignedRole,
       },
     });
 
     res.status(201).json({
       message: 'User registered successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
+      ...buildUserResponse(user),
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -64,6 +88,10 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -80,19 +108,10 @@ router.post('/login', async (req, res) => {
       { expiresIn: '8h' }
     );
 
-    // INCONSISTENT API RESPONSE format: Returns a nested success payload
-    // Different from registration response style
+    // Consistent response format
     res.json({
-      status: 'success',
-      data: {
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        },
-      },
+      message: 'Login successful',
+      ...buildUserResponse(user, token),
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -101,21 +120,21 @@ router.post('/login', async (req, res) => {
 });
 
 // GET /api/auth/me
-// Returns current user details based on JWT
-const { authenticate } = require('../middleware/auth');
 router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: { id: true, email: true, name: true, role: true },
     });
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
-    res.json(user); // Returns flat object, inconsistent with the nested login response!
+
+    // Consistent response format
+    res.json(buildUserResponse(user));
   } catch (error) {
+    console.error('Profile fetch error:', error);
     res.status(500).json({ error: 'Failed to load user profile' });
   }
 });
