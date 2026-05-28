@@ -1,19 +1,13 @@
 'use client';
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 const AuthContext = createContext();
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '');
-
-const requireApiBaseUrl = () => {
-  if (!API_BASE_URL) {
-    throw new Error('NEXT_PUBLIC_API_BASE_URL must be configured for the frontend.');
-  }
-
-  return API_BASE_URL;
-};
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ||
+  'http://localhost:5000/api';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -22,6 +16,16 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const router = useRouter();
 
+  // FIXED: Define logout FIRST using useCallback so useEffect can safely use it
+  const logout = useCallback(() => {
+    localStorage.removeItem('haqms_token');
+    localStorage.removeItem('haqms_user');
+    setToken(null);
+    setUser(null);
+    router.push('/login');
+  }, [router]);
+
+  // Now useEffect can safely reference logout
   useEffect(() => {
     const storedToken = localStorage.getItem('haqms_token');
     const storedUser = localStorage.getItem('haqms_user');
@@ -36,14 +40,16 @@ export const AuthProvider = ({ children }) => {
       }
     }
     setLoading(false);
-  }, []);
+  }, [logout]);
 
-  const login = async (email, password) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const apiBaseUrl = requireApiBaseUrl();
-      const response = await fetch(`${apiBaseUrl}/auth/login`, {
+const login = useCallback(async (email, password) => {
+  setLoading(true);
+  setError(null);
+
+  try {
+    const apiBaseUrl = API_BASE_URL;
+
+    const response = await fetch(`${apiBaseUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,8 +63,12 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error || 'Authentication failed');
       }
 
-      const receivedToken = data.data.token;
-      const receivedUser = data.data.user;
+      const receivedToken = data.token;
+      const receivedUser = data.user;
+
+      if (!receivedToken || !receivedUser) {
+        throw new Error('Invalid response from server');
+      }
 
       localStorage.setItem('haqms_token', receivedToken);
       localStorage.setItem('haqms_user', JSON.stringify(receivedUser));
@@ -75,14 +85,16 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
-  const register = async (name, email, password, role = 'RECEPTIONIST') => {
-    setLoading(true);
-    setError(null);
-    try {
-      const apiBaseUrl = requireApiBaseUrl();
-      const response = await fetch(`${apiBaseUrl}/auth/register`, {
+const register = useCallback(async (name, email, password, role = 'RECEPTIONIST') => {
+  setLoading(true);
+  setError(null);
+
+  try {
+    const apiBaseUrl = API_BASE_URL;
+
+    const response = await fetch(`${apiBaseUrl}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,20 +110,13 @@ export const AuthProvider = ({ children }) => {
 
       return login(email, password);
     } catch (err) {
+      console.error('[AUTH-ERROR] Register request failed:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
       setLoading(false);
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('haqms_token');
-    localStorage.removeItem('haqms_user');
-    setToken(null);
-    setUser(null);
-    router.push('/login');
-  };
+  }, [login]);
 
   return (
     <AuthContext.Provider
