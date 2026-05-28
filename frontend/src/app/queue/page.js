@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/common/Navbar';
 import { Activity, Bell, Monitor, RefreshCw, AlertCircle } from 'lucide-react';
 
@@ -39,19 +39,17 @@ export default function QueueMonitor() {
     fetchQueueData();
 
     const intervalId = setInterval(() => {
-      fetchQueueData();
-      setRefreshCount((prev) => {
-        const next = prev + 1;
-        console.log(`[POLL] Active Queue Poll #${next} firing...`);
-        return next;
-      });
-    }, 3000);
+      if (document.visibilityState === 'visible') {
+        fetchQueueData();
+        setRefreshCount((prev) => prev + 1);
+      }
+    }, 5000);
 
     return () => clearInterval(intervalId);
   }, []);
 
   // Group tokens by doctor
-  const groupedTokens = tokens.reduce((groups, token) => {
+  const groupedTokens = useMemo(() => tokens.reduce((groups, token) => {
     const docId = token.doctorId;
     if (!groups[docId]) {
       groups[docId] = {
@@ -61,14 +59,14 @@ export default function QueueMonitor() {
         waiting: [],
       };
     }
-    
+
     if (token.status === 'CALLING') {
       groups[docId].calling = token;
     } else if (token.status === 'WAITING') {
       groups[docId].waiting.push(token);
     }
     return groups;
-  }, {});
+  }, {}), [tokens]);
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -1,53 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #0f766e;
-  --primary-foreground: #f8fafc;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #14b8a6;
-  --accent-foreground: #0f172a;
-  --destructive: #ef4444;
-  --destructive-foreground: #f8fafc;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0f766e;
+  --bg-main: #070B14;
+  --bg-card: rgba(15, 23, 42, 0.72);
+  --primary: #5B8CFF;
+  --secondary: #63F5D2;
+  --accent: #A78BFA;
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --border: rgba(255,255,255,0.08);
   --radius: 0.75rem;
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --card: #1e293b;
-  --card-foreground: #f8fafc;
-  --popover: #1e293b;
-  --popover-foreground: #f8fafc;
-  --primary: #14b8a6;
-  --primary-foreground: #0f172a;
-  --secondary: #334155;
-  --secondary-foreground: #f8fafc;
-  --muted: #334155;
-  --muted-foreground: #94a3b8;
-  --accent: #0f766e;
-  --accent-foreground: #f8fafc;
-  --destructive: #f87171;
-  --destructive-foreground: #0f172a;
-  --border: #334155;
-  --input: #334155;
-  --ring: #14b8a6;
+  --bg-main: #070B14;
+  --bg-card: rgba(15, 23, 42, 0.72);
+  --primary: #5B8CFF;
+  --secondary: #63F5D2;
+  --accent: #A78BFA;
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --border: rgba(255,255,255,0.08);
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: var(--bg-main);
+  color: var(--text-main);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -55,51 +33,120 @@ body {
 
 /* Custom premium styles */
 .glass {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,0.04);
 }
 
 .dark .glass {
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  border: 1px solid rgba(255,255,255,0.06);
+
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.03);
 }
 
 .gradient-bg {
-  background: radial-gradient(circle at 10% 20%, rgba(20, 184, 166, 0.15) 0%, transparent 40%),
-              radial-gradient(circle at 90% 80%, rgba(15, 118, 110, 0.15) 0%, transparent 40%);
+  background:
+    radial-gradient(circle at top left, rgba(91, 140, 255, 0.18), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(99, 245, 210, 0.14), transparent 30%),
+    radial-gradient(circle at center, rgba(167, 139, 250, 0.08), transparent 35%),
+    var(--bg-main);
 }
 
 .glow-btn {
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  background: linear-gradient(90deg, var(--primary), #3ce0c9);
+  color: white;
+}
+.glow-btn:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(91,140,255,0.12);
 }
 
-.glow-btn::after {
+.glow-btn:active { transform: translateY(0) scale(0.995); }
+
+/* Pill tab styles */
+.pill-tab {
+  padding: .6rem .9rem;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
+}
+.pill-tab:hover { background: rgba(255,255,255,0.02); color: var(--text-main); }
+.pill-tab-active {
+  background: rgba(91,140,255,0.12);
+  border: 1px solid rgba(91,140,255,0.12);
+  color: #cfe3ff;
+  box-shadow: 0 6px 24px rgba(91,140,255,0.06);
+}
+
+/* Table wrapper upgrade */
+.table-wrapper { border-radius: 1rem; overflow: hidden; }
+.table-header-bg { background: rgba(255,255,255,0.03); backdrop-filter: blur(6px); }
+.table-row-hover:hover { background: rgba(91,140,255,0.04); }
+
+/* Primary button system */
+.primary-btn {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  padding: 0.625rem 1.25rem;
+  font-weight: 800;
+  color: white;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.18s ease;
+  background: linear-gradient(135deg, #5B8CFF 0%, #63F5D2 100%);
+  box-shadow: 0 10px 30px rgba(91,140,255,0.25);
+}
+.primary-btn:hover {
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 14px 40px rgba(91,140,255,0.35);
+}
+
+/* Soft grid overlay for premium texture */
+body::before {
   content: '';
-  position: absolute;
-  top: 0;
-  left: -50%;
-  width: 200%;
-  height: 100%;
-  background: linear-gradient(
-    to right,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.3) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: skewX(-25deg);
-  transition: 0.75s;
-  opacity: 0;
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
 }
 
-.glow-btn:hover::after {
-  opacity: 1;
-  left: 125%;
+/* Queue calling animation */
+.queue-calling {
+  animation: pulse 3s ease-in-out infinite;
+  box-shadow: 0 12px 36px rgba(56,189,248,0.12), 0 6px 18px rgba(56,189,248,0.06);
+  border-radius: 1rem;
+  border: 1px solid rgba(99,245,210,0.06);
+}
+@keyframes pulse {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .queue-calling,
+  .pulse-loader div,
+  .glow-btn,
+  .primary-btn {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* Custom loading pulse */

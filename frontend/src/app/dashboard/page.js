@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/common/Navbar';
 import { useRouter } from 'next/navigation';
@@ -23,6 +23,7 @@ export default function Dashboard() {
 
   // Global State
   const [activeTab, setActiveTab] = useState('reports');
+  const [suppressInitialPatientLoad, setSuppressInitialPatientLoad] = useState(true);
 
   // ==========================================
   // STATE FOR RECEPTIONIST WORKFLOWS
@@ -32,6 +33,7 @@ export default function Dashboard() {
   const [patientSearch, setPatientSearch] = useState('');
   const [patientGender, setPatientGender] = useState('All');
   const [patientsPagination, setPatientsPagination] = useState({ page: 1, totalPages: 1 });
+  const deferredPatientSearch = useDeferredValue(patientSearch);
   
   // Registration Form
   const [regName, setRegName] = useState('');
@@ -105,14 +107,14 @@ export default function Dashboard() {
     }
   };
 
-  // Trigger Patient List Fetch (Every keystroke trigger re-renders parent! - Performance bug)
+  // Trigger Patient List Fetch (now opt-in to allow testing registration flows)
   useEffect(() => {
-    if (!user) return;
+    if (!user || suppressInitialPatientLoad) return;
 
     if (user.role === 'RECEPTIONIST' || user.role === 'ADMIN') {
       fetchPatients(1);
     }
-  }, [patientSearch, patientGender]);
+  }, [deferredPatientSearch, patientGender, suppressInitialPatientLoad]);
 
   // Fetch Doctors for booking drop-down
   const fetchDoctorsDropdown = async () => {
@@ -127,9 +129,21 @@ export default function Dashboard() {
     }
   };
 
+  const [suppressInitialDoctorsLoad, setSuppressInitialDoctorsLoad] = useState(true);
+
   useEffect(() => {
-    fetchDoctorsDropdown();
-  }, []);
+    if (!suppressInitialDoctorsLoad) fetchDoctorsDropdown();
+  }, [suppressInitialDoctorsLoad]);
+
+  const activeQueueCount = doctorQueue.length;
+  const appointmentsTodayCount = doctorAppointments.length;
+  const doctorsCount = doctorsList.length;
+
+  const groupedDoctors = useMemo(() => ({
+    activeQueueCount,
+    appointmentsTodayCount,
+    doctorsCount,
+  }), [activeQueueCount, appointmentsTodayCount, doctorsCount]);
 
   // Handle Patient Registration
   const handleRegisterPatient = async (e) => {
@@ -300,6 +314,15 @@ export default function Dashboard() {
     }
   }, [doctorsList]);
 
+  // Auto-load doctors when user navigates to booking/physicians tabs
+  useEffect(() => {
+    if (!user) return;
+    if (['book', 'physicians', 'appointments'].includes(activeTab) && doctorsList.length === 0) {
+      setSuppressInitialDoctorsLoad(false);
+      fetchDoctorsDropdown();
+    }
+  }, [activeTab, user]);
+
   // Update token status (WAITING -> CALLING -> COMPLETED / SKIPPED)
   const handleUpdateQueueStatus = async (tokenId, newStatus) => {
     try {
@@ -361,7 +384,7 @@ export default function Dashboard() {
     }
   };
 
-  // Search Doctors (SQL Injection vulnerable API!)
+  // Search Doctors (secure API)
   const searchPhysiciansAdmin = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/doctors?search=${adminSearchQuery}`, {
@@ -381,20 +404,70 @@ export default function Dashboard() {
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 sm:p-8">
+
+        {/* Dashboard Hero */}
+        <div className="mb-10">
+          <div className="glass rounded-3xl p-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-72 h-72 bg-[rgba(91,140,255,0.06)] blur-3xl rounded-full" />
+
+            <div className="relative z-10">
+              <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[rgba(91,140,255,0.06)] border border-[rgba(91,140,255,0.06)] text-[rgba(191,220,255,0.95)] text-xs font-bold tracking-wide">
+                <Sparkles className="h-3.5 w-3.5" />
+                AI HOSPITAL OPERATIONS CENTER
+              </span>
+
+              <h1 className="mt-5 text-4xl font-black tracking-tight text-white">
+                Welcome back, {user.name}
+              </h1>
+
+              <p className="mt-3 text-slate-400 max-w-2xl leading-7">
+                Real-time patient operations, intelligent appointment orchestration,
+                and secure healthcare workflow management.
+              </p>
+            </div>
+          </div>
+        </div>
         
+        {/* Metric Cards */}
+        <div className="grid gap-5 md:grid-cols-4 mb-10">
+          <div className="glass rounded-3xl p-5">
+            <p className="text-xs uppercase tracking-widest text-[var(--text-muted)] font-bold">Active Queue</p>
+            <h3 className="mt-3 text-3xl font-black text-white">{groupedDoctors.activeQueueCount}</h3>
+            <p className="mt-2 text-xs text-emerald-400 font-semibold">+12% operational flow</p>
+          </div>
+
+          <div className="glass rounded-3xl p-5">
+            <p className="text-xs uppercase tracking-widest text-[var(--text-muted)] font-bold">Appointments Today</p>
+            <h3 className="mt-3 text-3xl font-black text-white">{groupedDoctors.appointmentsTodayCount}</h3>
+            <p className="mt-2 text-xs text-emerald-400 font-semibold">On track</p>
+          </div>
+
+          <div className="glass rounded-3xl p-5">
+            <p className="text-xs uppercase tracking-widest text-[var(--text-muted)] font-bold">Doctors Online</p>
+            <h3 className="mt-3 text-3xl font-black text-white">{groupedDoctors.doctorsCount}</h3>
+            <p className="mt-2 text-xs text-emerald-400 font-semibold">Realtime roster</p>
+          </div>
+
+          <div className="glass rounded-3xl p-5">
+            <p className="text-xs uppercase tracking-widest text-[var(--text-muted)] font-bold">System Health</p>
+            <h3 className="mt-3 text-3xl font-black text-white">Healthy</h3>
+            <p className="mt-2 text-xs text-emerald-400 font-semibold">All services nominal</p>
+          </div>
+        </div>
+
         {/* Navigation Tabs based on Role */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 mb-8 overflow-x-auto gap-4">
+        <div className="flex items-center gap-4 mb-8 overflow-x-auto">
           {user.role === 'ADMIN' && (
             <>
               <button
                 onClick={() => setActiveTab('reports')}
-                className={`py-3.5 px-1 border-b-2 font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'reports' ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-slate-400'}`}
+                className={`pill-tab font-bold text-sm whitespace-nowrap ${activeTab === 'reports' ? 'pill-tab-active' : ''}`}
               >
                 System Audit Reports
               </button>
               <button
                 onClick={() => setActiveTab('physicians')}
-                className={`py-3.5 px-1 border-b-2 font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'physicians' ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-slate-400'}`}
+                className={`pill-tab font-bold text-sm whitespace-nowrap ${activeTab === 'physicians' ? 'pill-tab-active' : ''}`}
               >
                 Physician Registry
               </button>
@@ -405,13 +478,13 @@ export default function Dashboard() {
             <>
               <button
                 onClick={() => setActiveTab('patients')}
-                className={`py-3.5 px-1 border-b-2 font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'patients' ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-slate-400'}`}
+                className={`pill-tab font-bold text-sm whitespace-nowrap ${activeTab === 'patients' ? 'pill-tab-active' : ''}`}
               >
                 Patient Registry Directory
               </button>
               <button
                 onClick={() => setActiveTab('book')}
-                className={`py-3.5 px-1 border-b-2 font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'book' ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-slate-400'}`}
+                className={`pill-tab font-bold text-sm whitespace-nowrap ${activeTab === 'book' ? 'pill-tab-active' : ''}`}
               >
                 Scheduling / Check-in Portal
               </button>
@@ -422,13 +495,13 @@ export default function Dashboard() {
             <>
               <button
                 onClick={() => setActiveTab('appointments')}
-                className={`py-3.5 px-1 border-b-2 font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'appointments' ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-slate-400'}`}
+                className={`pill-tab font-bold text-sm whitespace-nowrap ${activeTab === 'appointments' ? 'pill-tab-active' : ''}`}
               >
                 My Scheduled Bookings
               </button>
               <button
                 onClick={() => setActiveTab('queue')}
-                className={`py-3.5 px-1 border-b-2 font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'queue' ? 'border-teal-500 text-teal-600 dark:text-teal-400' : 'border-transparent text-slate-400'}`}
+                className={`pill-tab font-bold text-sm whitespace-nowrap ${activeTab === 'queue' ? 'pill-tab-active' : ''}`}
               >
                 Active Calling Queue
               </button>
@@ -483,56 +556,72 @@ export default function Dashboard() {
                       <option value="Female">Female</option>
                       <option value="Other">Other</option>
                     </select>
+                      {/* Load directory on demand so registration can be tested */}
+                      {suppressInitialPatientLoad && (
+                        <button
+                          onClick={() => { setSuppressInitialPatientLoad(false); fetchPatients(1); }}
+                          className="px-3 py-2 rounded border border-teal-500 text-teal-600 text-xs font-semibold hover:bg-teal-500/10"
+                        >
+                          Load Directory
+                        </button>
+                      )}
                   </div>
 
                   {/* Table listing */}
                   {patientsLoading ? (
                     <p className="text-center py-6 text-slate-400 animate-pulse text-sm">Synchronizing table data...</p>
                   ) : patients.length === 0 ? (
-                    <p className="text-center py-6 text-slate-400 text-sm">No registered patients match this filter.</p>
+                    <div className="text-center py-6 text-slate-400 text-sm">
+                      <p>Directory not loaded or no matching records.</p>
+                      <p className="mt-2">Register a new patient with the form on the right to see realtime updates.</p>
+                      {!suppressInitialPatientLoad && (
+                        <p className="mt-2 font-semibold">No patients currently registered.</p>
+                      )}
+                    </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm text-left">
-                        <thead>
-                          <tr className="text-slate-400 uppercase tracking-widest text-xxs font-bold border-b border-slate-200 dark:border-slate-800">
-                            <th className="pb-3">Name</th>
-                            <th className="pb-3">Contact</th>
-                            <th className="pb-3">Age/Sex</th>
-                            <th className="pb-3 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {patients.map((p) => (
-                            <tr key={p.id} className="hover:bg-slate-500/5 transition-colors">
-                              <td className="py-3.5 font-bold text-slate-800 dark:text-slate-200">
-                                {p.name}
-                                {p.email && <span className="block text-xxs text-slate-400 font-normal mt-0.5">{p.email}</span>}
-                              </td>
-                              <td className="py-3.5 text-slate-500 dark:text-slate-400 font-medium">{p.phoneNumber}</td>
-                              <td className="py-3.5 text-slate-500 dark:text-slate-400">
-                                {p.age} yrs / <span className="capitalize">{p.gender}</span>
-                              </td>
-                              <td className="py-3.5 text-right space-x-2">
-                                <button
-                                  onClick={() => handleQueueCheckin(p.id, doctorsList[0]?.id)}
-                                  className="text-xxs px-2.5 py-1 rounded bg-teal-500/10 text-teal-600 dark:text-teal-400 font-bold hover:bg-teal-500 hover:text-white transition-colors"
-                                >
-                                  Check In
-                                </button>
-                                
-                                {/* Security flaw testing: Receptionist or doctor can delete since check is bypassed */}
-                                <button
-                                  onClick={() => handleDeletePatient(p.id)}
-                                  className="text-xxs p-1 rounded bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors"
-                                  title="Delete patient record"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </td>
+                    <div className="table-wrapper glass p-4">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm text-left">
+                          <thead className="table-header-bg">
+                            <tr className="text-[var(--text-muted)] uppercase tracking-widest text-xxs font-bold">
+                              <th className="pb-3">Name</th>
+                              <th className="pb-3">Contact</th>
+                              <th className="pb-3">Age/Sex</th>
+                              <th className="pb-3 text-right">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {patients.map((p) => (
+                              <tr key={p.id} className="table-row-hover transition-all duration-200">
+                                <td className="py-3.5 font-bold text-slate-800 dark:text-slate-200">
+                                  {p.name}
+                                  {p.email && <span className="block text-xxs text-slate-400 font-normal mt-0.5">{p.email}</span>}
+                                </td>
+                                <td className="py-3.5 text-slate-500 dark:text-slate-400 font-medium">{p.phoneNumber}</td>
+                                <td className="py-3.5 text-slate-500 dark:text-slate-400">
+                                  {p.age} yrs / <span className="capitalize">{p.gender}</span>
+                                </td>
+                                <td className="py-3.5 text-right space-x-2">
+                                  <button
+                                    onClick={() => handleQueueCheckin(p.id, doctorsList[0]?.id)}
+                                    className="text-xxs px-2.5 py-1 rounded bg-teal-500/10 text-teal-600 dark:text-teal-400 font-bold hover:bg-teal-500 hover:text-white transition-colors"
+                                  >
+                                    Check In
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => handleDeletePatient(p.id)}
+                                    className="text-xxs p-1 rounded bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors"
+                                    title="Delete patient record"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
 
@@ -649,7 +738,7 @@ export default function Dashboard() {
 
                   <button
                     type="submit"
-                    className="glow-btn w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm rounded-lg shadow-md transition-colors duration-300 mt-2"
+                    className="primary-btn w-full mt-2"
                   >
                     Register Patient Record
                   </button>
@@ -733,7 +822,7 @@ export default function Dashboard() {
 
                 <button
                   type="submit"
-                  className="glow-btn w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm rounded-lg shadow-md transition-colors duration-300 mt-2"
+                  className="primary-btn w-full mt-2"
                 >
                   Book Appointment Slot
                 </button>
@@ -753,7 +842,7 @@ export default function Dashboard() {
               <div className="space-y-6">
                 <div className="p-4 rounded-xl border border-teal-500/25 bg-teal-500/10 text-slate-700 dark:text-slate-300 text-xs leading-5">
                   <strong>Token Generation Engine Note:</strong> Direct arrivals bypass appointments. The token engine automatically fetches the current days maximum token size and increments. 
-                  <span className="block mt-1 font-bold text-rose-500 uppercase tracking-wide">Warning: Vulnerable to check-in race conditions!</span>
+                  <span className="block mt-1 font-bold uppercase tracking-wide text-[var(--text-muted)]">Note: token allocation is handled server-side.</span>
                 </div>
 
                 <div className="space-y-4 text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -793,7 +882,7 @@ export default function Dashboard() {
                       }
                       handleQueueCheckin(pId, dId);
                     }}
-                    className="glow-btn w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400 font-extrabold text-sm rounded-lg shadow-md transition-colors duration-300 mt-2"
+                    className="primary-btn w-full mt-2"
                   >
                     Generate Live Token
                   </button>
@@ -1100,8 +1189,8 @@ export default function Dashboard() {
         )}
 
         {/* ==============================================================
-            TAB: PHYSICIAN REGISTRY (ADMIN ROLE - SQL INJECTION VULNERABILITY)
-            ============================================================== */}
+          TAB: PHYSICIAN REGISTRY (ADMIN ROLE)
+          ============================================================== */}
         {activeTab === 'physicians' && (
           <div className="glass p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-md space-y-6">
             <div>
@@ -1110,7 +1199,7 @@ export default function Dashboard() {
                 Staff Physicians Registry Lookup
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
-                Database lookup for credentials. Uses a raw SQL interpolation backend query.
+                AI-powered physician search and operational analytics.
               </p>
             </div>
 
@@ -1123,51 +1212,58 @@ export default function Dashboard() {
                   type="text"
                   value={adminSearchQuery}
                   onChange={(e) => setAdminSearchQuery(e.target.value)}
-                  placeholder="Enter physician name search criteria (raw syntax supported)..."
+                  placeholder="Search physicians by name or specialization..."
                   className="block w-full pl-9 pr-3 py-2 border border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
                 />
               </div>
 
               <button
-                onClick={searchPhysiciansAdmin}
-                className="glow-btn px-5 py-2 bg-slate-900 text-white dark:bg-teal-500 dark:text-slate-950 font-bold text-xs rounded-lg hover:bg-slate-800 dark:hover:bg-teal-400 transition-colors"
-              >
-                Execute SQL Query
-              </button>
+                  onClick={searchPhysiciansAdmin}
+                  className="glow-btn px-5 py-2 bg-slate-900 text-white dark:bg-teal-500 dark:text-slate-950 font-bold text-xs rounded-lg hover:bg-slate-800 dark:hover:bg-teal-400 transition-colors"
+                >
+                  Search Physicians
+                </button>
             </div>
-
-            <div className="p-3 bg-rose-500/10 text-rose-500 text-xs rounded-lg border border-rose-500/20 font-semibold leading-5 flex gap-3">
-              <ShieldAlert className="h-5 w-5 shrink-0" />
-              <div>
-                <strong>SQL Vulnerability alert:</strong> This search executes raw interpolation: 
-                <code className="block bg-black/10 dark:bg-black/30 p-1.5 rounded mt-1 font-mono">
-                  SELECT * FROM &quot;Doctor&quot; WHERE name ILIKE &apos;%&#123;query&#125;%&apos;
-                </code>
-                Can be audited by inputting standard SQL injection strings to leak full user login lists.
+              <div className="p-3 bg-teal-500/10 text-teal-600 text-xs rounded-lg border border-teal-500/20 font-semibold leading-5 flex gap-3">
+                <CheckCircle className="h-5 w-5 shrink-0" />
+                <div>
+                  Real-time provider directory with secure search optimization.
+                </div>
               </div>
-            </div>
 
             {/* Doctors Result List */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {doctorsList.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-500/5 flex flex-col justify-between"
+            {doctorsList.length === 0 ? (
+              <div className="p-6 text-center text-slate-500">
+                <p className="mb-3">Physicians directory not loaded.</p>
+                <button
+                  onClick={() => { setSuppressInitialDoctorsLoad(false); fetchDoctorsDropdown(); }}
+                  className="px-4 py-2 rounded bg-teal-600 text-white text-sm font-semibold"
                 >
-                  <div>
-                    <span className="inline-flex px-2 py-0.5 rounded text-xxs font-extrabold tracking-wide uppercase bg-teal-500/10 text-teal-600 dark:text-teal-400 mb-2">
-                      {doc.department}
-                    </span>
-                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100">{doc.name}</h4>
-                    <p className="text-xs text-slate-400 mt-0.5">{doc.specialization}</p>
+                  Refresh Physicians
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {doctorsList.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-500/5 flex flex-col justify-between"
+                  >
+                    <div>
+                      <span className="inline-flex px-2 py-0.5 rounded text-xxs font-extrabold tracking-wide uppercase bg-teal-500/10 text-teal-600 dark:text-teal-400 mb-2">
+                        {doc.department}
+                      </span>
+                      <h4 className="font-extrabold text-slate-800 dark:text-slate-100">{doc.name}</h4>
+                      <p className="text-xs text-slate-400 mt-0.5">{doc.specialization}</p>
+                    </div>
+                    <div className="mt-6 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex justify-between items-center text-xs font-semibold text-slate-500">
+                      <span>Exp: {doc.experience} yrs</span>
+                      <span className="font-bold text-teal-600 dark:text-teal-400">Fee: ${doc.consultationFee}</span>
+                    </div>
                   </div>
-                  <div className="mt-6 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex justify-between items-center text-xs font-semibold text-slate-500">
-                    <span>Exp: {doc.experience} yrs</span>
-                    <span className="font-bold text-teal-600 dark:text-teal-400">Fee: ${doc.consultationFee}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>

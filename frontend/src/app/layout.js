@@ -9,7 +9,7 @@ const inter = Inter({
 
 export const metadata = {
   title: 'HAQMS - Hospital Appointment & Queue Management',
-  description: 'Deliberately imperfect queue and scheduling application for assessment purposes.',
+  description: 'MedFlow AI — Real-time healthcare operations and queue orchestration platform.',
 };
 
 export default function RootLayout({ children }) {
@@ -20,9 +20,16 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={`${inter.variable} font-sans min-h-screen gradient-bg`}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[-10%] left-[10%] w-[420px] h-[420px] bg-[rgba(91,140,255,0.18)] blur-[80px] rounded-full" />
+          <div className="absolute bottom-[-10%] right-[10%] w-[380px] h-[380px] bg-[rgba(99,245,210,0.08)] blur-[80px] rounded-full" />
+        </div>
+
+        <div className="relative z-10">
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </div>
       </body>
     </html>
   );
