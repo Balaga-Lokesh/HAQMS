@@ -11,11 +11,11 @@ export default function Home() {
           <div className="text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[rgba(91,140,255,0.08)] text-[rgba(223,236,255,0.98)] text-sm font-medium mb-6 border border-[rgba(91,140,255,0.14)]">
               <Activity className="h-4 w-4" />
-              Operational intelligence for modern clinics
+              Hospital appointment and queue management
             </div>
 
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight bg-gradient-to-r from-slate-100 via-cyan-100 to-teal-200 bg-clip-text text-transparent">
-              MedFlow AI
+              HAQMS
             </h1>
             <p className="text-xl sm:text-2xl font-bold mt-3 text-slate-200">
               Healthcare operations software built for appointment flow, queue visibility, and staff coordination.
@@ -61,7 +61,7 @@ export default function Home() {
       </div>
 
       <footer className="text-center text-slate-400 dark:text-slate-500 text-xs mt-12">
-        © 2026 MedFlow AI. Premium healthcare operations software.
+        © 2026 HAQMS. Hospital Appointment & Queue Management System.
       </footer>
     </div>
   );

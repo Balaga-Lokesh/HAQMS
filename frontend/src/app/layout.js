@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: 'MedFlow AI | Healthcare Operations Platform',
-  description: 'A premium healthcare operations SaaS for appointments, queues, and clinical workflows.',
+  title: 'HAQMS | Hospital Appointment & Queue Management System',
+  description: 'Hospital Appointment & Queue Management System for patient registration, appointments, and live queue operations.',
 };
 
 export default function RootLayout({ children }) {
