@@ -135,13 +135,6 @@ export default function Login() {
               >
                 <strong>Receptionist:</strong> reception1@haqms.com
               </button>
-              <button
-                type="button"
-                onClick={() => { setEmail('doctor1@haqms.com'); setPassword('password123'); }}
-                className="text-left p-2 rounded bg-slate-100 dark:bg-slate-800 hover:bg-teal-500/10 hover:text-teal-600 dark:hover:text-teal-400 transition-colors text-slate-600 dark:text-slate-300"
-              >
-                <strong>Doctor:</strong> doctor1@haqms.com
-              </button>
             </div>
           </div>
         </div>

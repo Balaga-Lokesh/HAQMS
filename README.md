@@ -1,6 +1,19 @@
-# MedFlow AI
+# HAQMS – Hospital Appointment & Queue Management System
 
-MedFlow AI is a healthcare operations SaaS for appointment booking, patient registration, queue control, and role-based staff workflows.
+HAQMS is a healthcare operations SaaS for appointment booking, patient registration, queue control, and role-based staff workflows.
+
+## Features 
+- Role-based authentication (Admin, Doctor, Receptionist) 
+- Patient registration and management
+- Appointment scheduling workflow
+- Live queue and token management
+- Doctor dashboard and appointment tracking
+- Clinical history records
+- Queue calling and status updates
+- Pagination and filtering for patient registry
+- Secure Prisma/PostgreSQL backend
+- Responsive modern dashboard UI
+- Production deployment using Railway and Vercel
 
 ## Architecture
 
@@ -48,6 +61,12 @@ npm run docker:db
 npm run db:setup --prefix backend
 npm run dev
 ```
+## Live Deployment
+Frontend: 
+https://frontend-haqms.vercel.app/ 
+
+Backend: 
+https://backend-production-f2b27.up.railway.app/
 
 ## Deployment
 
@@ -71,7 +90,7 @@ npm run dev
 - Login/logout works for all roles
 - Queue generation and queue calling work correctly
 - Appointment booking succeeds for receptionists and doctors
-- Doctor search returns safe, filtered results
+- Doctor search optimized for secure filtered querying
 - Patient pagination is server-side
 - Dashboard renders for admin, doctor, and receptionist roles
 - No secrets are hardcoded in source files
@@ -95,10 +114,18 @@ The seed data includes the following users with the password `password123`:
 
 - `admin@haqms.com` - Administrator
 - `reception1@haqms.com` - Receptionist
-- `doctor1@haqms.com` - Doctor
 
 ## Notes
 
 - The backend expects PostgreSQL and Prisma migrations to be available before startup.
 - The frontend requires `NEXT_PUBLIC_API_BASE_URL` to point at the Railway backend.
 - `setup.sh` is a convenience script for local bootstrap only.
+
+## Application Preview
+![Landing page](image.png)
+![login page](image-1.png)
+![dashboard](image-2.png)
+![live queue from admin side](image-3.png)
+![Patient Registering from receptionist](image-4.png)
+![Patient appointment booking](image-5.png)
+![Doctor dashboard](image-6.png)

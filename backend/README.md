@@ -1,6 +1,6 @@
 # HAQMS Backend
 
-Express.js API and Prisma data layer for MedFlow AI.
+Express.js API and Prisma data layer for HAQMS.
 
 ## Local Development
 
@@ -39,3 +39,10 @@ npm run prisma:seed
 - `GET /api/patients` supports search, gender filtering, and pagination.
 - `GET /api/queue` powers the public queue board.
 - `POST /api/queue/checkin` allocates queue tokens transactionally.
+
+## Security Notes
+
+- JWT-based authentication enabled
+- Role-based authorization enforced
+- Prisma ORM used for safe database querying
+- Environment variables required for secrets and database access
