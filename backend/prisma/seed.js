@@ -4,155 +4,147 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await bcrypt.hash('password123', 10);
+  console.log('Starting production seed...');
 
+  const passwordPlain = 'password123';
+  const passwordHash = await bcrypt.hash(passwordPlain, 10);
+
+  // Clear existing demo data
   await prisma.queueToken.deleteMany({});
   await prisma.appointment.deleteMany({});
   await prisma.patient.deleteMany({});
   await prisma.doctor.deleteMany({});
-  await prisma.user.deleteMany({});
+  await prisma.user.deleteMany({
+    where: {
+      role: {
+        not: 'ADMIN',
+      },
+    },
+  });
 
-  const admin = await prisma.user.create({
-    data: {
+  console.log('Old demo data cleared.');
+
+  // Admin
+  const adminExists = await prisma.user.findUnique({
+    where: {
       email: 'admin@haqms.com',
-      password: passwordHash,
-      name: 'System Admin',
-      role: 'ADMIN',
     },
   });
 
-  const receptionist = await prisma.user.create({
-    data: {
+  if (!adminExists) {
+    await prisma.user.create({
+      data: {
+        email: 'admin@haqms.com',
+        password: passwordHash,
+        name: 'System Admin',
+        role: 'ADMIN',
+      },
+    });
+
+    console.log('Admin created.');
+  }
+
+  // Receptionist
+  const receptionistExists = await prisma.user.findUnique({
+    where: {
       email: 'reception1@haqms.com',
-      password: passwordHash,
-      name: 'Reception Desk',
-      role: 'RECEPTIONIST',
     },
   });
 
-  const doctorUser = await prisma.user.create({
-    data: {
-      email: 'doctor1@haqms.com',
-      password: passwordHash,
-      name: 'Dr. Meredith Grey',
-      role: 'DOCTOR',
-    },
-  });
+  if (!receptionistExists) {
+    await prisma.user.create({
+      data: {
+        email: 'reception1@haqms.com',
+        password: passwordHash,
+        name: 'Reception Desk',
+        role: 'RECEPTIONIST',
+      },
+    });
 
-  const cardiologyDoctor = await prisma.doctor.create({
-    data: {
-      userId: doctorUser.id,
-      name: 'Dr. Meredith Grey',
+    console.log('Receptionist created.');
+  }
+
+  // Doctors
+  const doctors = [
+    {
+      name: 'Dr. Jane Smith',
+      email: 'doctor.jane@haqms.com',
       specialization: 'Cardiology',
       department: 'Medicine',
       consultationFee: 150,
-      experience: 12,
+      experience: 8,
     },
-  });
-
-  const neurologyDoctor = await prisma.doctor.create({
-    data: {
-      name: 'Dr. Alex Morgan',
+    {
+      name: 'Dr. Alan Turing',
+      email: 'doctor.alan@haqms.com',
       specialization: 'Neurology',
       department: 'Medicine',
       consultationFee: 200,
+      experience: 15,
+    },
+    {
+      name: 'Dr. Priya Patel',
+      email: 'doctor.priya@haqms.com',
+      specialization: 'Pediatrics',
+      department: 'Pediatrics',
+      consultationFee: 120,
+      experience: 7,
+    },
+    {
+      name: 'Dr. Carlos Mendez',
+      email: 'doctor.carlos@haqms.com',
+      specialization: 'Orthopedics',
+      department: 'Surgery',
+      consultationFee: 130,
       experience: 10,
     },
-  });
+    {
+      name: 'Dr. Li Wei',
+      email: 'doctor.li@haqms.com',
+      specialization: 'General Medicine',
+      department: 'General',
+      consultationFee: 100,
+      experience: 12,
+    },
+  ];
 
-  const patients = await Promise.all([
-    prisma.patient.create({
+  for (const d of doctors) {
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        email: d.email,
+      },
+    });
+
+    if (existingUser) {
+      console.log(`Doctor already exists: ${d.email}`);
+      continue;
+    }
+
+    const user = await prisma.user.create({
       data: {
-        name: 'Clark Kent',
-        email: 'clark.kent@haqms.com',
-        phoneNumber: '5551000001',
-        age: 32,
-        gender: 'Male',
-        medicalHistory: null,
+        email: d.email,
+        password: passwordHash,
+        name: d.name,
+        role: 'DOCTOR',
       },
-    }),
-    prisma.patient.create({
+    });
+
+    await prisma.doctor.create({
       data: {
-        name: 'Bruce Wayne',
-        email: 'bruce.wayne@haqms.com',
-        phoneNumber: '5551000002',
-        age: 38,
-        gender: 'Male',
-        medicalHistory: 'Past orthopedic review; requires ongoing monitoring.',
+        userId: user.id,
+        name: d.name,
+        specialization: d.specialization,
+        department: d.department,
+        consultationFee: d.consultationFee,
+        experience: d.experience,
       },
-    }),
-    prisma.patient.create({
-      data: {
-        name: 'Diana Prince',
-        email: 'diana.prince@haqms.com',
-        phoneNumber: '5551000003',
-        age: 30,
-        gender: 'Female',
-        medicalHistory: 'Annual wellness check; no active concerns.',
-      },
-    }),
-  ]);
+    });
 
-  const [clark, bruce, diana] = patients;
+    console.log(`Doctor created: ${d.email}`);
+  }
 
-  const now = new Date();
-  const oneHour = 60 * 60 * 1000;
-
-  await prisma.appointment.createMany({
-    data: [
-      {
-        patientId: clark.id,
-        doctorId: cardiologyDoctor.id,
-        appointmentDate: new Date(now.getTime() + oneHour),
-        reason: 'Annual cardiac screening',
-        status: 'PENDING',
-      },
-      {
-        patientId: bruce.id,
-        doctorId: cardiologyDoctor.id,
-        appointmentDate: new Date(now.getTime() + 2 * oneHour),
-        reason: 'Follow-up consultation',
-        status: 'COMPLETED',
-      },
-      {
-        patientId: diana.id,
-        doctorId: neurologyDoctor.id,
-        appointmentDate: new Date(now.getTime() + 3 * oneHour),
-        reason: 'Routine evaluation',
-        status: 'PENDING',
-      },
-    ],
-  });
-
-  await prisma.queueToken.createMany({
-    data: [
-      {
-        tokenNumber: 1,
-        patientId: clark.id,
-        doctorId: cardiologyDoctor.id,
-        appointmentId: null,
-        status: 'WAITING',
-      },
-      {
-        tokenNumber: 2,
-        patientId: bruce.id,
-        doctorId: cardiologyDoctor.id,
-        appointmentId: null,
-        status: 'CALLING',
-      },
-      {
-        tokenNumber: 1,
-        patientId: diana.id,
-        doctorId: neurologyDoctor.id,
-        appointmentId: null,
-        status: 'WAITING',
-      },
-    ],
-  });
-
-  console.log('Seed completed successfully.');
-  console.log('Demo users: admin@haqms.com, reception1@haqms.com, doctor1@haqms.com');
-  console.log('Password for all demo users: password123');
+  console.log('Production seed completed successfully.');
+  console.log('Password for all users: password123');
 }
 
 main()
@@ -163,3 +155,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
