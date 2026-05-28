@@ -70,6 +70,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
+console.log('NEW DEPLOYMENT ACTIVE');
 app.listen(PORT, () => {
   console.log(`===================================================`);
   console.log(`   HAQMS BACKEND SERVER IS RUNNING ON PORT ${PORT}`);
